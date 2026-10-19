@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nol-Post</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <div class="app">
+      <header class="topbar">
+        <div class="brand">
+          <span class="brand-mark" aria-hidden="true">NP</span>
+          <div class="brand-text">
+            <strong class="brand-name">Nol-Post</strong>
+            <span class="brand-sub">postseason</span>
+          </div>
+        </div>
+        <div class="brand-actions">
+          <span id="nol-rec-state" class="badge" title="Rec 상태">Idle</span>
+        </div>
+      </header>
+
+      <section class="sync-strip" aria-label="서버 시간">
+        <div class="clock-row">
+          <span class="meta-label">Server</span>
+          <span id="time-display" class="time">--:--:-- ---</span>
+          <span id="rtt-value" class="badge mono">RTT —</span>
+        </div>
+        <div class="sync-controls">
+          <input
+            id="url-input"
+            type="url"
+            placeholder="Sync URL · https://nol.yanolja.com"
+            value="https://nol.yanolja.com"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="start-btn" type="button" class="btn-primary">Start</button>
+          <button id="stop-btn" type="button" class="ghost" disabled>Stop</button>
+        </div>
+        <p id="status-text" class="status">URL 입력 후 Start</p>
+      </section>
+
+      <section class="sched-strip" aria-label="예약 Rec">
+        <div class="section-label-row">
+          <span class="meta-label">예약 Rec</span>
+          <span id="sched-rec-state" class="badge">Idle</span>
+        </div>
+        <div class="sched-rec-row">
+          <label class="sched-field" title="시">
+            <span>hh</span>
+            <input id="sched-hh" type="number" min="0" max="23" step="1" value="11" />
+          </label>
+          <label class="sched-field" title="분">
+            <span>mm</span>
+            <input id="sched-mm" type="number" min="0" max="59" step="1" value="0" />
+          </label>
+          <label class="sched-field" title="초">
+            <span>ss</span>
+            <input id="sched-ss" type="number" min="0" max="59" step="1" value="0" />
+          </label>
+          <label class="sched-field" title="밀리초">
+            <span>ms</span>
+            <input id="sched-ms" type="number" min="0" max="999" step="1" value="0" />
+          </label>
+          <button id="sched-rec-arm-btn" type="button" class="btn-accent">예약</button>
+          <button id="sched-rec-clear-btn" type="button" class="ghost compact">해제</button>
+        </div>
+        <p id="sched-rec-status" class="status">Start 후 시각 입력 → 예약 (서버 시각 기준 · NOL)</p>
+      </section>
+
+      <main class="panel-scroll" id="panel-scroll">
+        <section class="tab-panel is-active" data-panel="nol" role="tabpanel">
+          <div class="block-body">
+            <div class="section-label-row">
+              <span class="meta-label">NOL Postseason</span>
+            </div>
+            <div class="field-grid g-url-idx-txt">
+              <input
+                id="nol-auto-url"
+                type="text"
+                placeholder="NOL URL (비우면 현재 탭)"
+                value="https://nol.yanolja.com/ticket/genre/sports/postseason"
+              />
+              <input
+                id="nol-auto-index"
+                type="number"
+                placeholder="순서"
+                value="1"
+                title="스캔 목록 번호 / goodsCode 없을 때"
+              />
+              <input id="nol-auto-text" type="text" placeholder="버튼 텍스트" value="예매하기" />
+            </div>
+            <div class="field-grid g-scan">
+              <select id="nol-btn-pick" title="스캔된 경기/버튼">
+                <option value="">목록 스캔 후 선택</option>
+              </select>
+              <button id="nol-btn-scan-btn" type="button" class="ghost compact">목록</button>
+            </div>
+            <div class="field-grid g-ids">
+              <input
+                id="nol-goods-code"
+                type="text"
+                placeholder="goodsCode (예: 26014425)"
+                title="대상 매칭 + 교체값"
+              />
+              <input
+                id="nol-place-code"
+                type="text"
+                placeholder="placeCode (예: 26000514)"
+                title="활성화 시 match.placeCode 교체"
+              />
+            </div>
+            <div class="btn-row">
+              <button id="nol-activate-btn" type="button" class="btn-accent">활성화·값교체</button>
+              <button id="nol-auto-click-btn" type="button" class="record">● NOL Rec</button>
+            </div>
+            <p id="nol-auto-status" class="status">목록 → 선택/값 수정 → 활성화 → Rec</p>
+            <p id="nol-activate-status" class="status">fiber match 패치 · disabled 해제 · 라벨 예매하기</p>
+          </div>
+        </section>
+      </main>
+
+      <footer class="progress-log-wrap" id="progress-log-wrap">
+        <button
+          type="button"
+          class="progress-log-tab"
+          id="progress-log-toggle"
+          aria-expanded="false"
+          aria-controls="progress-log-body"
+        >
+          <span class="progress-log-tab-label">
+            <span class="progress-chevron" aria-hidden="true"></span>
+            Progress
+          </span>
+          <span id="progress-log-count" class="progress-log-count">0</span>
+        </button>
+        <div class="progress-log-body" id="progress-log-body" hidden>
+          <div class="progress-log-actions">
+            <button id="copy-progress-btn" type="button" class="ghost compact">전체 복사</button>
+            <button id="clear-progress-btn" type="button" class="ghost compact">Clear</button>
+          </div>
+          <div id="progress-log" class="progress-log" aria-live="polite"></div>
+        </div>
+      </footer>
+    </div>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>
