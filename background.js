@@ -428,11 +428,21 @@ function nolMainPageFunc(mode, opts) {
   const forceLabel = String(opts.forceLabel || "예매하기").trim();
 
   function fiberOf(el) {
-    if (!el) return null;
-    for (const k of Object.keys(el)) {
-      if (k.startsWith("__reactFiber$") || k.startsWith("__reactInternalInstance$")) {
-        return el[k];
+    let node = el;
+    while (node) {
+      let keys = [];
+      try {
+        keys = Reflect.ownKeys(node);
+      } catch {
+        keys = [];
       }
+      for (const k of keys) {
+        const name = typeof k === "string" ? k : "";
+        if (name.startsWith("__reactFiber$") || name.startsWith("__reactInternalInstance$")) {
+          return node[k];
+        }
+      }
+      node = node.parentElement || null;
     }
     return null;
   }
@@ -451,18 +461,34 @@ function nolMainPageFunc(mode, opts) {
     return String(matchFiberNode(el)?.match?.goodsCode || "");
   }
 
-  function rootEl() {
-    return (
-      document.querySelector('[id^="GOODS_RESERVATION"]') ||
-      document.querySelector("#GOODS_RESERVATION-492") ||
-      document.body
-    );
+  function buttonLabel(btn) {
+    return String(btn.innerText || btn.textContent || "")
+      .replace(/\s+/g, " ")
+      .trim();
   }
 
   function collectButtons({ includeDisabled = true } = {}) {
-    const root = rootEl();
-    return [...root.querySelectorAll("button")].filter((btn) => {
-      const t = String(btn.innerText || "").replace(/\s+/g, " ").trim();
+    const roots = [...document.querySelectorAll('[id^="GOODS_RESERVATION"]')];
+    const pools = roots.length ? roots : [document.body];
+    const seen = new Set();
+    const raw = [];
+    for (const root of pools) {
+      for (const btn of root.querySelectorAll("button")) {
+        if (seen.has(btn)) continue;
+        seen.add(btn);
+        raw.push(btn);
+      }
+    }
+    // 위젯 id가 여러 개면 앞쪽 빈 상자만 보면 0이 된다. 그래도 없으면 페이지 전체 버튼.
+    if (!raw.length) {
+      for (const btn of document.querySelectorAll("button")) {
+        if (seen.has(btn)) continue;
+        seen.add(btn);
+        raw.push(btn);
+      }
+    }
+    return raw.filter((btn) => {
+      const t = buttonLabel(btn);
       if (!t) return false;
       const hit =
         /예매|오픈\s*예정|판매\s*예정|Sold\s*Out|매진/i.test(t) ||
@@ -583,7 +609,7 @@ function nolMainPageFunc(mode, opts) {
       const list = buttons.map((btn, i) => {
         const found = matchFiberNode(btn);
         const m = found?.match || {};
-        const text = String(btn.innerText || "").replace(/\s+/g, " ").trim();
+        const text = buttonLabel(btn);
         const disabled =
           btn.disabled ||
           btn.getAttribute("aria-disabled") === "true" ||
@@ -672,6 +698,8 @@ async function nolRunMain(tabId, mode, opts = {}) {
 
 async function resolveNolTabId(preferredId) {
   if (preferredId != null) return preferredId;
+  const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (active?.id && /yanolja\.com/i.test(active.url || "")) return active.id;
   const tabs = await chrome.tabs.query({
     url: ["*://nol.yanolja.com/*", "*://*.yanolja.com/*"],
   });

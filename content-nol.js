@@ -19,13 +19,20 @@ function progressLog(text, level = "info") {
 }
 
 function collectReserveButtons() {
-  const root =
-    document.querySelector('[id^="GOODS_RESERVATION"]') ||
-    document.querySelector("#GOODS_RESERVATION-492") ||
-    document.body;
+  const roots = [...document.querySelectorAll('[id^="GOODS_RESERVATION"]')];
+  const pools = roots.length ? roots : [document.body];
+  const seen = new Set();
+  const buttons = [];
+  for (const root of pools) {
+    for (const btn of root.querySelectorAll("button")) {
+      if (seen.has(btn)) continue;
+      seen.add(btn);
+      buttons.push(btn);
+    }
+  }
   const want = String(nolRec.config?.text || "예매하기").trim();
   const goodsCode = String(nolRec.config?.goodsCode || "").trim();
-  return [...root.querySelectorAll("button")].filter((btn) => {
+  return buttons.filter((btn) => {
     const forced = btn.hasAttribute("data-nol-post-active") || btn.classList.contains("__nol_post_forced");
     if (btn.disabled && !forced) return false;
     const t = String(btn.innerText || "").replace(/\s+/g, " ").trim();
